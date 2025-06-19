@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Биология: СОР и СОЧ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -23,7 +24,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       margin-bottom: 1em;
     }
-    input, textarea, select {
+    input, textarea {
       width: 100%;
       padding: 0.5em;
       margin-top: 0.3em;
@@ -46,116 +47,112 @@
       font-weight: bold;
       color: #d63333;
     }
+    .score {
+      text-align: center;
+      font-size: 1.2em;
+      margin-top: 1em;
+    }
+    .scale {
+      margin-top: 1em;
+      padding: 1em;
+      background: #e9f5ff;
+      border-radius: 8px;
+    }
+    .manual-score {
+      background: #fff8dc;
+      padding: 0.5em;
+      margin-top: 1em;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>Приложение «Биология: СОР и СОЧ»</h1>
-  <div class="block" id="start-screen">
-    <label>ФИО:</label>
-    <input id="fio" type="text" />
-    <label>Класс:</label>
-    <input id="klass" type="text" />
-    <button class="start" onclick="startTest('SOR')">Начать СОР</button>
-    <button class="start" onclick="startTest('SOCH')">Начать СОЧ</button>
-  </div>
 
-  <div class="block" id="test-screen" style="display:none;">
-    <div class="timer" id="timer"></div>
-    <p><b>Тип:</b> <span id="q-type"></span></p>
-    <p id="q-text"></p>
-    <div id="q-options"></div>
-    <textarea id="q-answer" rows="4" style="display:none;" placeholder="Ваш ответ..."></textarea>
-    <div>
-      <button class="back" onclick="prevQuestion()">Назад</button>
-      <button class="next" onclick="nextQuestion()">Далее</button>
-    </div>
+<h1>Приложение «Биология: СОР и СОЧ»</h1>
+
+<div class="block" id="start-screen">
+  <label>ФИО:</label>
+  <input id="fio" type="text">
+  <label>Класс:</label>
+  <input id="klass" type="text">
+  <p><b>Цели обучения:</b></p>
+  <ul>
+    <li>8.4.2.2 сравнить строение клеток эукариот и прокариот</li>
+    <li>8.4.1.1 описывать различия между мономерами и полимерами</li>
+    <li>8.4.1.2 описывать свойства и функции углеводов и липидов</li>
+    <li>8.4.1.3 описывать свойства и функции белков</li>
+  </ul>
+  <p><b>Макс. баллы за СОР: 12 | СОЧ: 30</b></p>
+  <button class="start" onclick="startTest('SOR')">Начать СОР</button>
+  <button class="start" onclick="startTest('SOCH')">Начать СОЧ</button>
+</div>
+
+<div class="block" id="test-screen" style="display:none;">
+  <div class="timer" id="timer"></div>
+  <p><b>Тип:</b> <span id="q-type"></span></p>
+  <p id="q-text"></p>
+  <div id="q-options"></div>
+  <textarea id="q-answer" rows="4" style="display:none;" placeholder="Ваш ответ..."></textarea>
+  <div>
+    <button class="back" onclick="prevQuestion()">Назад</button>
+    <button class="next" onclick="confirmFinish()">Завершить</button>
   </div>
+  <div class="score" id="question-score"></div>
+</div>
+
+<div class="block" id="result-screen" style="display:none;">
+  <h3 id="result-title"></h3>
+  <p><strong>ФИО:</strong> <span id="result-fio"></span></p>
+  <p><strong>Класс:</strong> <span id="result-klass"></span></p>
+  <p><strong>Итоговый балл:</strong> <span id="total-score"></span></p>
+  <div class="manual-score">
+    <label for="manual">Изменить вручную:</label>
+    <input type="number" id="manual" min="0" max="30" onchange="manualUpdateScore()">
+  </div>
+  <div class="scale">
+    <h4>Шкала оценивания:</h4>
+    <ul>
+      <li>10–12 баллов — «Отлично»</li>
+      <li>7–9 баллов — «Хорошо»</li>
+      <li>4–6 баллов — «Удовлетворительно»</li>
+      <li>0–3 балла — «Неудовлетворительно»</li>
+    </ul>
+  </div>
+</div>
+
+<button onclick="showAdminPanel()" style="position:fixed;bottom:10px;right:10px;background:#444;color:white;padding:0.5em 1em;border-radius:5px;">Панель администратора</button>
 
 <script>
 const questions = [
   {
-    {
-  "type": "MVO",
-  "question": "Заполните таблицу, используя изображения клеток. Для каждой клетки укажите её тип (эукариот или прокариот) и ключевые отличительные особенности.",
-  // Массив "items" содержит данные для каждого столбца таблицы (каждой клетки).
-  "items": [
-    {
-      "id": "cell_bacterium", // Уникальный идентификатор для этой ячейки/клетки.
-      // URL к изображению бактериальной клетки. ОБЯЗАТЕЛЬНО ЗАМЕНИТЕ НА ВАШ URL.
-      "image_url": "https://placehold.co/150x150/E0F2F7/000000?text=Бактерия",
-      "label": "Клетка 1 (Бактерия)", // Подпись для этой клетки в интерфейсе.
-      "fields": [ // Поля для ввода, соответствующие строкам "Тип клетки" и "Отличительные особенности".
-        {
-          "field_name": "Тип клетки", // Название поля, которое будет видно пользователю.
-          "field_type": "text_input", // Тип поля - текстовый ввод.
-          "correct_answer": "Прокариот", // Правильный ответ. Учтите возможную чувствительность к регистру.
-          "placeholder": "Например: Эукариот или Прокариот" // Подсказка в поле ввода.
-        },
-        {
-          "field_name": "Отличительные особенности",
-          "field_type": "text_input",
-          // Правильный ответ. Можно дать несколько допустимых вариантов через запятую, если система поддерживает.
-          "correct_answer": "Отсутствие ядра; отсутствие мембранных органоидов; кольцевая ДНК; мелкие рибосомы; клеточная стенка",
-          "placeholder": "Например: ядро, органоиды, клеточная стенка, вакуоли"
-        }
-      ]
-    },
-    {
-      "id": "cell_plant", // Уникальный идентификатор для этой ячейки/клетки.
-      // URL к изображению растительной клетки. ОБЯЗАТЕЛЬНО ЗАМЕНИТЕ НА ВАШ URL.
-      "image_url": "https://placehold.co/150x150/D1F2EB/000000?text=Растительная+клетка",
-      "label": "Клетка 2 (Растительная клетка)",
-      "fields": [
-        {
-          "field_name": "Тип клетки",
-          "field_type": "text_input",
-          "correct_answer": "Эукариот",
-          "placeholder": "Например: Эукариот или Прокариот"
-        },
-        {
-          "field_name": "Отличительные особенности",
-          "field_type": "text_input",
-          "correct_answer": "Ядро; хлоропласты; клеточная стенка; крупная центральная вакуоль; пластиды",
-          "placeholder": "Например: ядро, органоиды, клеточная стенка, вакуоли"
-        }
-      ]
-    },
-    {
-      "id": "cell_animal", // Уникальный идентификатор для этой ячейки/клетки.
-      // URL к изображению животной клетки. ОБЯЗАТЕЛЬНО ЗАМЕНИТЕ НА ВАШ URL.
-      "image_url": "https://placehold.co/150x150/F8D8D8/000000?text=Животная+клетка",
-      "label": "Клетка 3 (Животная клетка)",
-      "fields": [
-        {
-          "field_name": "Тип клетки",
-          "field_type": "text_input",
-          "correct_answer": "Эукариот",
-          "placeholder": "Например: Эукариот или Прокариот"
-        },
-        {
-          "field_name": "Отличительные особенности",
-          "field_type": "text_input",
-          "correct_answer": "Ядро; отсутствие клеточной стенки; отсутствие хлоропластов; центриоли; мелкие вакуоли",
-          "placeholder": "Например: ядро, органоиды, клеточная стенка, вакуоли"
-        }
-      ]
-    }
-  ]
-}
+    type: "МВО",
+    question: "Какой орган отвечает за фотосинтез?",
+    options: ["Кора", "Лист", "Корень", "Цветок"],
+    correct: "Лист",
+    score: 1
+  },
+  {
     type: "КО",
-    question: "Назовите орган, в котором происходит дыхание растений."
+    question: "Назовите орган, в котором происходит дыхание растений.",
+    score: 2
   },
   {
     type: "РО",
-    question: "Опишите процесс круговорота воды в природе с биологической точки зрения."
+    question: "Опишите процесс круговорота воды в природе с биологической точки зрения.",
+    score: 3
   }
 ];
 
 let current = 0;
 let timerInterval;
 let seconds = 0;
+let totalScore = 0;
+let currentMode = "";
+let answers = [];
+let testSubmitted = false;
 
 function startTest(mode) {
+  currentMode = mode;
   document.getElementById("start-screen").style.display = "none";
   document.getElementById("test-screen").style.display = "block";
   seconds = mode === "SOR" ? 20 * 60 : 45 * 60;
@@ -165,7 +162,7 @@ function startTest(mode) {
     updateTimer();
     if (seconds <= 0) {
       clearInterval(timerInterval);
-      alert("Время вышло!");
+      finishTest();
     }
   }, 1000);
   renderQuestion();
@@ -183,12 +180,18 @@ function renderQuestion() {
   document.getElementById("q-text").innerText = q.question;
   document.getElementById("q-options").innerHTML = "";
   document.getElementById("q-answer").style.display = "none";
+  document.getElementById("question-score").innerText = `Балл: ${q.score}`;
 
   if (q.type === "МВО") {
     q.options.forEach(opt => {
       const btn = document.createElement("button");
       btn.textContent = opt;
       btn.className = "next";
+      btn.onclick = () => {
+        if (opt === q.correct) totalScore += q.score;
+        answers.push(`${q.question}\nОтвет: ${opt}`);
+        nextQuestion();
+      };
       document.getElementById("q-options").appendChild(btn);
     });
   } else {
@@ -197,12 +200,24 @@ function renderQuestion() {
 }
 
 function nextQuestion() {
+  const q = questions[current];
+  if (q.type !== "МВО") {
+    const written = document.getElementById("q-answer").value;
+    answers.push(`${q.question}\nОтвет: ${written}`);
+    totalScore += q.score;
+    document.getElementById("q-answer").value = "";
+  }
   if (current < questions.length - 1) {
     current++;
     renderQuestion();
   } else {
-    alert("Тест завершён. Спасибо!");
-    clearInterval(timerInterval);
+    finishTest();
+  }
+}
+
+function confirmFinish() {
+  if (confirm("Вы точно хотите завершить тест?")) {
+    nextQuestion();
   }
 }
 
@@ -212,6 +227,87 @@ function prevQuestion() {
     renderQuestion();
   }
 }
+
+function manualUpdateScore() {
+  const val = parseInt(document.getElementById("manual").value);
+  totalScore = val;
+  document.getElementById("total-score").innerText = totalScore;
+}
+
+function finishTest() {
+  if (testSubmitted) return;
+  testSubmitted = true;
+  clearInterval(timerInterval);
+  document.getElementById("test-screen").style.display = "none";
+  document.getElementById("result-screen").style.display = "block";
+  document.getElementById("result-fio").innerText = document.getElementById("fio").value;
+  document.getElementById("result-klass").innerText = document.getElementById("klass").value;
+  document.getElementById("total-score").innerText = totalScore;
+  document.getElementById("manual").value = totalScore;
+  document.getElementById("result-title").innerText = currentMode === "SOR" ? "СОР завершен" : "СОЧ завершен";
+  saveResultLocally();
+}
+
+function saveResultLocally() {
+  const result = {
+    fio: document.getElementById("fio").value,
+    klass: document.getElementById("klass").value,
+    mode: currentMode,
+    score: totalScore,
+    answers: answers,
+    timestamp: new Date().toISOString()
+  };
+  const existing = JSON.parse(localStorage.getItem("biology_results") || "[]");
+  existing.push(result);
+  localStorage.setItem("biology_results", JSON.stringify(existing));
+}
+
+function exportResultsToCSV() {
+  const results = JSON.parse(localStorage.getItem("biology_results") || "[]");
+  if (!results.length) return alert("Нет данных для экспорта");
+  let csv = "ФИО,Класс,Тип,Балл,Дата\n";
+  results.forEach(r => {
+    csv += `${r.fio},${r.klass},${r.mode},${r.score},${new Date(r.timestamp).toLocaleString()}\n`;
+  });
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.setAttribute("href", URL.createObjectURL(blob));
+  link.setAttribute("download", "результаты_биология.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exportResultsToPDF() {
+  const results = JSON.parse(localStorage.getItem("biology_results") || "[]");
+  if (!results.length) return alert("Нет данных для экспорта");
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(12);
+  doc.text("Результаты тестов", 10, 10);
+  let y = 20;
+  results.forEach((r, i) => {
+    doc.text(`${i+1}. ${r.fio}, Класс: ${r.klass}, Тип: ${r.mode}, Балл: ${r.score}, ${new Date(r.timestamp).toLocaleString()}`, 10, y);
+    y += 8;
+    if (y > 270) { doc.addPage(); y = 20; }
+  });
+  doc.save("результаты_биология.pdf");
+}
+
+function showAdminPanel() {
+  const pass = prompt("Введите пароль администратора:");
+  if (pass !== "admin123") return;
+  const results = JSON.parse(localStorage.getItem("biology_results") || "[]");
+  let html = `<h2>Результаты</h2>
+    <table border="1" cellpadding="5"><tr><th>ФИО</th><th>Класс</th><th>Тип</th><th>Балл</th><th>Дата</th></tr>
+    ${results.map(r => `<tr><td>${r.fio}</td><td>${r.klass}</td><td>${r.mode}</td><td>${r.score}</td><td>${new Date(r.timestamp).toLocaleString()}</td></tr>`).join('')}</table>
+    <br>
+    <button onclick="window.opener.exportResultsToCSV()">Скачать Excel (CSV)</button>
+    <button onclick="window.opener.exportResultsToPDF()">Скачать PDF</button>`;
+  const w = window.open();
+  w.document.write(`<html><head><title>Админ-панель</title></head><body>${html}</body></html>`);
+}
 </script>
+
 </body>
 </html>
