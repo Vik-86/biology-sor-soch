@@ -152,25 +152,3 @@ function prevQuestion() {
 </script>
 </body>
 </html>
-<!-- Внутри блока #result-screen -->
-<button class="next" onclick="downloadPDF()">Скачать ответы в PDF</button>
-<button class="next" onclick="downloadExcel()">Экспорт в Excel</button>
-  <input type="password" id="teacher-pass" placeholder="Пароль учителя" />
-  <button onclick="loginAsTeacher()">Войти</button>
-</div>
-
-<!-- Кнопка отображения входа -->
-<div style="text-align: center; margin-bottom: 1em;">
-  <button onclick="document.getElementById('teacher-login').style.display='block'">Войти как учитель</button>
-</div>
-
-// Скрипт:
-function loginAsTeacher() {
-  const pass = document.getElementById("teacher-pass").value;
-  if (pass === "teacher123") {
-    document.getElementById("teacher-tools").style.display = "block";
-    alert("Доступ учителя открыт");
-  } else {
-    alert("Неверный пароль");
-  }
-}
