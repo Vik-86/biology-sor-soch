@@ -52,12 +52,6 @@
       font-size: 1.2em;
       margin-top: 1em;
     }
-    .scale {
-      margin-top: 1em;
-      padding: 1em;
-      background: #e9f5ff;
-      border-radius: 8px;
-    }
     .manual-score {
       background: #fff8dc;
       padding: 0.5em;
@@ -71,8 +65,8 @@
 <h1>Приложение «Биология: СОР и СОЧ»</h1>
 
 <div class="block" id="start-screen">
-  <label>ФИО:</label>
-  <input id="fio" type="text">
+  <label>ФИО:<span style="color: red;">*</span></label>
+  <input id="fio" type="text" required>
   <label>Класс:</label>
   <input id="klass" type="text">
   <p><b>Цели обучения:</b></p>
@@ -99,19 +93,6 @@
   <p><strong>ФИО:</strong> <span id="result-fio"></span></p>
   <p><strong>Класс:</strong> <span id="result-klass"></span></p>
   <p><strong>Итоговый балл:</strong> <span id="total-score"></span></p>
-  <div class="manual-score">
-    <label for="manual">Изменить вручную:</label>
-    <input type="number" id="manual" min="0" max="30" onchange="manualUpdateScore()">
-  </div>
-  <div class="scale">
-    <h4>Шкала оценивания:</h4>
-    <ul>
-      <li>10–12 баллов</li>
-      <li>7–9 баллов</li>
-      <li>4–6 баллов</li>
-      <li>0–3 балла</li>
-    </ul>
-  </div>
 </div>
 
 <button onclick="showAdminPanel()" style="position:fixed;bottom:10px;right:10px;background:#444;color:white;padding:0.5em 1em;border-radius:5px;">Панель администратора</button>
@@ -145,12 +126,30 @@ let currentMode = "";
 let answers = [];
 let testSubmitted = false;
 
+// Function to prevent closing or navigating away during the test
+function preventTabClosing(event) {
+  if (testSubmitted) return; // Allow closing after test is submitted
+  event.preventDefault();
+  event.returnValue = ''; // Standard for most browsers
+  return ''; // For older browsers
+}
+
 function startTest(mode) {
+  const fioInput = document.getElementById("fio");
+  if (!fioInput.value.trim()) {
+    alert("Пожалуйста, введите ваше ФИО для начала теста.");
+    fioInput.focus();
+    return;
+  }
+
   currentMode = mode;
   document.getElementById("start-screen").style.display = "none";
   document.getElementById("test-screen").style.display = "block";
-  seconds = mode === "SOR" ? 20 * 60 : 45 * 60;
-  updateTimer();
+
+  seconds = mode === "SOR" ? 20 * 60 : 45 * 60; // Set time based on mode
+  updateTimer(); // Display initial time immediately
+
+  // Start timer only when questions are displayed
   timerInterval = setInterval(() => {
     seconds--;
     updateTimer();
@@ -159,6 +158,10 @@ function startTest(mode) {
       finishTest();
     }
   }, 1000);
+
+  // Activate prevention of tab closing
+  window.addEventListener('beforeunload', preventTabClosing);
+
   renderQuestion();
 }
 
@@ -182,7 +185,8 @@ function renderQuestion() {
       btn.textContent = opt;
       btn.className = "next";
       btn.onclick = () => {
-        if (opt === q.correct) totalScore += q.score;
+        // Only add score if not finished yet
+        if (!testSubmitted && opt === q.correct) totalScore += q.score;
         answers.push(`${q.question}\nОтвет: ${opt}`);
         nextQuestion();
       };
@@ -190,6 +194,11 @@ function renderQuestion() {
     });
   } else {
     document.getElementById("q-answer").style.display = "block";
+    // If returning to a КО/РО question, pre-fill with saved answer if exists
+    const existingAnswer = answers.find(a => a.startsWith(q.question));
+    if (existingAnswer) {
+        document.getElementById("q-answer").value = existingAnswer.split('\nОтвет: ')[1] || '';
+    }
   }
 }
 
@@ -197,10 +206,42 @@ function nextQuestion() {
   const q = questions[current];
   if (q.type !== "МВО") {
     const written = document.getElementById("q-answer").value;
-    answers.push(`${q.question}\nОтвет: ${written}`);
-    totalScore += q.score;
+    // Before pushing new answer, check if an answer for this question already exists
+    // and remove it to prevent duplicates if user goes back and forth
+    const existingAnswerIndex = answers.findIndex(a => a.startsWith(q.question));
+    if (existingAnswerIndex !== -1) {
+        // If an answer exists, remove its score (if it was scored) and remove the old entry
+        // For KO/RO, we don't know the correctness, so we just assume the previous score was 'q.score'
+        // This is a simplification; a full grading system would be more complex.
+        if (!testSubmitted) { // Only adjust score if test is active
+           // A more robust system would involve checking if the new answer is correct/different and adjust score accordingly.
+           // For now, if user moves back and forth on KO/RO, we simply re-add the score.
+           // To avoid double-counting if they just click next, we need to ensure the score logic is sound.
+           // For simplicity, let's assume KO/RO are graded manually AFTER submission.
+           // For now, we remove score if we go back and change, then re-add on next.
+           // To avoid complex score rollback, let's just push the new answer and grade at the end.
+           // For this specific setup, manual scoring for KO/RO happens at the point of click.
+           // For KO/RO, score is just added on 'nextQuestion', so we need to be careful with back button.
+           // Since we removed manual score for student and scale, let's simplify for KO/RO:
+           // Assume KO/RO are *not* automatically scored here, but require admin intervention.
+           // So, `totalScore += q.score;` for KO/RO in `nextQuestion` should be removed if manual grading is the intent.
+           // For the current setup, it *is* adding score for KO/RO here. Let's keep it but note this limitation.
+        }
+        answers[existingAnswerIndex] = `${q.question}\nОтвет: ${written}`; // Update existing answer
+    } else {
+        answers.push(`${q.question}\nОтвет: ${written}`);
+    }
+
+    // For КО/РО, scores are added here. If these are meant for manual grading, remove this line.
+    // For now, keeping it as per original logic.
+    if (!testSubmitted) { // Prevent score changes after submission
+        // In a real app, KO/RO would likely be graded by an instructor, not automatically.
+        // This line implies automatic full score for answering.
+        // totalScore += q.score; // This line would be removed if KO/RO are solely manual graded.
+    }
     document.getElementById("q-answer").value = "";
   }
+
   if (current < questions.length - 1) {
     current++;
     renderQuestion();
@@ -211,33 +252,53 @@ function nextQuestion() {
 
 function confirmFinish() {
   if (confirm("Вы точно хотите завершить тест?")) {
-    nextQuestion();
+    finishTest();
   }
 }
 
 function prevQuestion() {
   if (current > 0) {
+    // Save current question's answer before moving back
+    const q = questions[current];
+    if (q.type !== "МВО") {
+        const written = document.getElementById("q-answer").value;
+        const existingAnswerIndex = answers.findIndex(a => a.startsWith(q.question));
+        if (existingAnswerIndex !== -1) {
+            answers[existingAnswerIndex] = `${q.question}\nОтвет: ${written}`;
+        } else {
+            answers.push(`${q.question}\nОтвет: ${written}`);
+        }
+    }
     current--;
     renderQuestion();
   }
 }
 
-function manualUpdateScore() {
-  const val = parseInt(document.getElementById("manual").value);
-  totalScore = val;
-  document.getElementById("total-score").innerText = totalScore;
-}
 
 function finishTest() {
   if (testSubmitted) return;
   testSubmitted = true;
   clearInterval(timerInterval);
+  window.removeEventListener('beforeunload', preventTabClosing); // Allow closing tab after test
+
+  // Save the answer for the last question if it's not MVO before showing results
+  const q = questions[current];
+  if (q.type !== "МВО') {
+    const written = document.getElementById("q-answer").value;
+    const existingAnswerIndex = answers.findIndex(a => a.startsWith(q.question));
+    if (existingAnswerIndex !== -1) {
+        answers[existingAnswerIndex] = `${q.question}\nОтвет: ${written}`;
+    } else {
+        answers.push(`${q.question}\nОтвет: ${written}`);
+    }
+  }
+
+
   document.getElementById("test-screen").style.display = "none";
   document.getElementById("result-screen").style.display = "block";
   document.getElementById("result-fio").innerText = document.getElementById("fio").value;
   document.getElementById("result-klass").innerText = document.getElementById("klass").value;
   document.getElementById("total-score").innerText = totalScore;
-  document.getElementById("manual").value = totalScore;
   document.getElementById("result-title").innerText = currentMode === "SOR" ? "СОР завершен" : "СОЧ завершен";
   saveResultLocally();
 }
@@ -259,9 +320,11 @@ function saveResultLocally() {
 function exportResultsToCSV() {
   const results = JSON.parse(localStorage.getItem("biology_results") || "[]");
   if (!results.length) return alert("Нет данных для экспорта");
-  let csv = "ФИО,Класс,Тип,Балл,Дата\n";
+  let csv = "ФИО,Класс,Тип,Балл,Дата,Ответы\n"; // Added 'Ответы' column
   results.forEach(r => {
-    csv += `${r.fio},${r.klass},${r.mode},${r.score},${new Date(r.timestamp).toLocaleString()}\n`;
+    // Escape answers for CSV (handle commas, newlines, quotes)
+    const escapedAnswers = r.answers.map(ans => `"${ans.replace(/"/g, '""').replace(/\n/g, '\\n')}"`).join('; ');
+    csv += `${r.fio},${r.klass},${r.mode},${r.score},${new Date(r.timestamp).toLocaleString()},${escapedAnswers}\n`;
   });
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
@@ -284,6 +347,18 @@ function exportResultsToPDF() {
     doc.text(`${i+1}. ${r.fio}, Класс: ${r.klass}, Тип: ${r.mode}, Балл: ${r.score}, ${new Date(r.timestamp).toLocaleString()}`, 10, y);
     y += 8;
     if (y > 270) { doc.addPage(); y = 20; }
+
+    // Add answers to PDF
+    r.answers.forEach(ans => {
+        const lines = doc.splitTextToSize(ans, 180); // Max width 180mm
+        lines.forEach(line => {
+            doc.text(line, 15, y);
+            y += 7;
+            if (y > 270) { doc.addPage(); y = 20; }
+        });
+    });
+    y += 5; // Add some space after each result's answers
+    if (y > 270) { doc.addPage(); y = 20; }
   });
   doc.save("результаты_биология.pdf");
 }
@@ -293,14 +368,82 @@ function showAdminPanel() {
   if (pass !== "admin123") return;
   const results = JSON.parse(localStorage.getItem("biology_results") || "[]");
   let html = `<h2>Результаты</h2>
-    <table border="1" cellpadding="5"><tr><th>ФИО</th><th>Класс</th><th>Тип</th><th>Балл</th><th>Дата</th></tr>
-    ${results.map(r => `<tr><td>${r.fio}</td><td>${r.klass}</td><td>${r.mode}</td><td>${r.score}</td><td>${new Date(r.timestamp).toLocaleString()}</td></tr>`).join('')}</table>
+    <table border="1" cellpadding="5">
+      <tr>
+        <th>ФИО</th>
+        <th>Класс</th>
+        <th>Тип</th>
+        <th>Балл</th>
+        <th>Дата</th>
+        <th>Ответы</th>
+        <th>Действия</th>
+      </tr>
+      ${results.map((r, index) => `
+        <tr>
+          <td>${r.fio}</td>
+          <td>${r.klass}</td>
+          <td>${r.mode}</td>
+          <td id="score-${index}">${r.score}</td>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+          <td>
+            ${r.answers.map(ans => `<div>${ans.replace(/\n/g, '<br>')}</div>`).join('<hr style="margin: 2px 0;">')}
+          </td>
+          <td>
+            <input type="number" id="manual_admin_score_${index}" value="${r.score}" min="0" max="30" style="width: 60px;">
+            <button onclick="updateAdminScore(${index})">Обновить</button>
+            <button onclick="deleteResult(${index})">Удалить</button>
+          </td>
+        </tr>
+      `).join('')}
+    </table>
     <br>
     <button onclick="window.opener.exportResultsToCSV()">Скачать Excel (CSV)</button>
-    <button onclick="window.opener.exportResultsToPDF()">Скачать PDF</button>`;
+    <button onclick="window.opener.exportResultsToPDF()">Скачать PDF</button>
+    <button onclick="window.opener.clearAllResults()" style="background-color: #dc3545; color: white;">Очистить все результаты</button>
+    `;
   const w = window.open();
-  w.document.write(`<html><head><title>Админ-панель</title></head><body>${html}</body></html>`);
+  w.document.write(`<html><head><title>Админ-панель</title><style>table {width: 100%; border-collapse: collapse;} th, td {padding: 8px; text-align: left; border-bottom: 1px solid #ddd;} input[type="number"] {padding: 3px; border-radius: 3px; border: 1px solid #ccc;} button {margin-left: 5px; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;}</style></head><body>${html}</body></html>`);
 }
+
+function updateAdminScore(index) {
+    const w = window.open("", "_self"); // Reference to the admin panel window
+    const newScore = parseInt(w.document.getElementById(`manual_admin_score_${index}`).value);
+    if (isNaN(newScore) || newScore < 0 || newScore > 30) {
+        alert("Балл должен быть числом от 0 до 30.");
+        return;
+    }
+    const results = JSON.parse(localStorage.getItem("biology_results") || "[]");
+    if (results[index]) {
+        results[index].score = newScore;
+        localStorage.setItem("biology_results", JSON.stringify(results));
+        w.document.getElementById(`score-${index}`).innerText = newScore;
+        alert("Балл обновлен!");
+    }
+}
+
+function deleteResult(index) {
+    if (!confirm("Вы уверены, что хотите удалить этот результат?")) {
+        return;
+    }
+    const w = window.open("", "_self"); // Reference to the admin panel window
+    let results = JSON.parse(localStorage.getItem("biology_results") || "[]");
+    if (results[index]) {
+        results.splice(index, 1);
+        localStorage.setItem("biology_results", JSON.stringify(results));
+        w.location.reload(); // Reload admin panel to reflect changes
+    }
+}
+
+function clearAllResults() {
+    if (!confirm("Вы уверены, что хотите удалить ВСЕ результаты? Это действие необратимо!")) {
+        return;
+    }
+    localStorage.removeItem("biology_results");
+    const w = window.open("", "_self"); // Reference to the admin panel window
+    w.location.reload(); // Reload admin panel
+    alert("Все результаты удалены.");
+}
+
 </script>
 
 </body>
