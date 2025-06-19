@@ -155,38 +155,6 @@ function prevQuestion() {
 <!-- Внутри блока #result-screen -->
 <button class="next" onclick="downloadPDF()">Скачать ответы в PDF</button>
 <button class="next" onclick="downloadExcel()">Экспорт в Excel</button>
-function downloadExcel() {
-  let csvContent = "data:text/csv;charset=utf-8,";
-  csvContent += `ФИО,${document.getElementById("fio").value}\n`;
-  csvContent += `Класс,${document.getElementById("klass").value}\n`;
-  csvContent += `Тип теста,${currentMode}\n`;
-  csvContent += `Баллы,${totalScore}\n\n`;
-  csvContent += "Вопрос,Ответ\n";
-  answers.forEach(a => {
-    const parts = a.split("\nОтвет: ");
-    const question = parts[0].replaceAll(",", ";");
-    const answer = parts[1] ? parts[1].replaceAll(",", ";") : "";
-    csvContent += `${question},${answer}\n`;
-  });
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "rezultat_testa.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-function prevQuestion() {
-  if (current > 0) {
-    current--;
-    renderQuestion();
-  }
-}
-</script>
-</body>
-</html>
-<div class="block" id="teacher-login" style="display:none;">
-  <h3>Вход для учителя</h3>
   <input type="password" id="teacher-pass" placeholder="Пароль учителя" />
   <button onclick="loginAsTeacher()">Войти</button>
 </div>
