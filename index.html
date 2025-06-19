@@ -152,14 +152,9 @@ function prevQuestion() {
 </script>
 </body>
 </html>
-// Весь предыдущий HTML и JS оставляем без изменений, добавим только кнопку и функцию Excel-экспорта в блоке результатов и в скрипте
-
 <!-- Внутри блока #result-screen -->
 <button class="next" onclick="downloadPDF()">Скачать ответы в PDF</button>
 <button class="next" onclick="downloadExcel()">Экспорт в Excel</button>
-
-// Внутри <script> добавим функцию:
-
 function downloadExcel() {
   let csvContent = "data:text/csv;charset=utf-8,";
   csvContent += `ФИО,${document.getElementById("fio").value}\n`;
@@ -181,9 +176,6 @@ function downloadExcel() {
   link.click();
   document.body.removeChild(link);
 }
-
-// Это позволит сохранить файл .csv, который можно открыть в Excel
-
 function prevQuestion() {
   if (current > 0) {
     current--;
@@ -216,7 +208,6 @@ function loginAsTeacher() {
   }
 }
 
-// Удалим auto-появление при завершении теста
 function finishTest() {
   clearInterval(timerInterval);
   document.getElementById("test-screen").style.display = "none";
