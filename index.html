@@ -67,8 +67,8 @@
 <div class="block" id="start-screen">
   <label>ФИО:<span style="color: red;">*</span></label>
   <input id="fio" type="text" required>
-  <label>Класс:</label>
-  <input id="klass" type="text">
+  <label>Класс:<span style="color: red;">*</span></label>
+  <input id="klass" type="text" required>
   <p><b>Цели обучения:</b></p>
   <p><b>Макс. баллы за СОР: 12 | СОЧ: 30</b></p>
   <button class="start" onclick="startTest('SOR')">Начать СОР</button>
@@ -136,9 +136,16 @@ function preventTabClosing(event) {
 
 function startTest(mode) {
   const fioInput = document.getElementById("fio");
+  const klassInput = document.getElementById("klass");
+
   if (!fioInput.value.trim()) {
     alert("Пожалуйста, введите ваше ФИО для начала теста.");
     fioInput.focus();
+    return;
+  }
+  if (!klassInput.value.trim()) {
+    alert("Пожалуйста, введите ваш Класс для начала теста.");
+    klassInput.focus();
     return;
   }
 
@@ -210,23 +217,6 @@ function nextQuestion() {
     // and remove it to prevent duplicates if user goes back and forth
     const existingAnswerIndex = answers.findIndex(a => a.startsWith(q.question));
     if (existingAnswerIndex !== -1) {
-        // If an answer exists, remove its score (if it was scored) and remove the old entry
-        // For KO/RO, we don't know the correctness, so we just assume the previous score was 'q.score'
-        // This is a simplification; a full grading system would be more complex.
-        if (!testSubmitted) { // Only adjust score if test is active
-           // A more robust system would involve checking if the new answer is correct/different and adjust score accordingly.
-           // For now, if user moves back and forth on KO/RO, we simply re-add the score.
-           // To avoid double-counting if they just click next, we need to ensure the score logic is sound.
-           // For simplicity, let's assume KO/RO are graded manually AFTER submission.
-           // For now, we remove score if we go back and change, then re-add on next.
-           // To avoid complex score rollback, let's just push the new answer and grade at the end.
-           // For this specific setup, manual scoring for KO/RO happens at the point of click.
-           // For KO/RO, score is just added on 'nextQuestion', so we need to be careful with back button.
-           // Since we removed manual score for student and scale, let's simplify for KO/RO:
-           // Assume KO/RO are *not* automatically scored here, but require admin intervention.
-           // So, `totalScore += q.score;` for KO/RO in `nextQuestion` should be removed if manual grading is the intent.
-           // For the current setup, it *is* adding score for KO/RO here. Let's keep it but note this limitation.
-        }
         answers[existingAnswerIndex] = `${q.question}\nОтвет: ${written}`; // Update existing answer
     } else {
         answers.push(`${q.question}\nОтвет: ${written}`);
@@ -283,7 +273,7 @@ function finishTest() {
 
   // Save the answer for the last question if it's not MVO before showing results
   const q = questions[current];
-  if (q.type !== "МВО') {
+  if (q.type !== "МВО") {
     const written = document.getElementById("q-answer").value;
     const existingAnswerIndex = answers.findIndex(a => a.startsWith(q.question));
     if (existingAnswerIndex !== -1) {
@@ -444,6 +434,10 @@ function clearAllResults() {
     alert("Все результаты удалены.");
 }
 
+</script>
+
+</body>
+</html>
 </script>
 
 </body>
