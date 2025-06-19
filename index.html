@@ -185,7 +185,6 @@ function prevQuestion() {
 </script>
 </body>
 </html>
-// Добавим отдельный интерфейс входа для учителя в HTML:
 <div class="block" id="teacher-login" style="display:none;">
   <h3>Вход для учителя</h3>
   <input type="password" id="teacher-pass" placeholder="Пароль учителя" />
@@ -206,15 +205,4 @@ function loginAsTeacher() {
   } else {
     alert("Неверный пароль");
   }
-}
-
-function finishTest() {
-  clearInterval(timerInterval);
-  document.getElementById("test-screen").style.display = "none";
-  document.getElementById("result-screen").style.display = "block";
-  document.getElementById("result-fio").innerText = document.getElementById("fio").value;
-  document.getElementById("result-klass").innerText = document.getElementById("klass").value;
-  document.getElementById("total-score").innerText = totalScore;
-  document.getElementById("manual").value = totalScore;
-  document.getElementById("result-title").innerText = currentMode === "SOR" ? "СОР завершен" : "СОЧ завершен";
 }
