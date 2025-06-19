@@ -1,3 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Биология: СОР и СОЧ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 2em;
+      background-color: #f4f6f8;
+    }
+    h1 {
+      color: #2E5C92;
+      text-align: center;
+    }
+    .block {
+      background: white;
+      border-radius: 10px;
+      padding: 1.5em;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 1em;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 0.5em;
+      margin-top: 0.3em;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 0.5em 1.2em;
+      margin: 0.5em 0.5em 0 0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .start { background: #2E5C92; color: white; }
+    .next { background: #4CAF50; color: white; }
+    .back { background: #ccc; }
+    .timer {
+      text-align: center;
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #d63333;
+    }
+  </style>
+</head>
+<body>
+  <h1>Приложение «Биология: СОР и СОЧ»</h1>
+  <div class="block" id="start-screen">
+    <label>ФИО:</label>
+    <input id="fio" type="text" />
+    <label>Класс:</label>
+    <input id="klass" type="text" />
+    <button class="start" onclick="startTest('SOR')">Начать СОР</button>
+    <button class="start" onclick="startTest('SOCH')">Начать СОЧ</button>
+  </div>
+
+  <div class="block" id="test-screen" style="display:none;">
+    <div class="timer" id="timer"></div>
+    <p><b>Тип:</b> <span id="q-type"></span></p>
+    <p id="q-text"></p>
+    <div id="q-options"></div>
+    <textarea id="q-answer" rows="4" style="display:none;" placeholder="Ваш ответ..."></textarea>
+    <div>
+      <button class="back" onclick="prevQuestion()">Назад</button>
+      <button class="next" onclick="nextQuestion()">Далее</button>
+    </div>
+  </div>
+
+<script>
+const questions = [
+  {
+    type: "МВО",
+    question: "Какой орган отвечает за фотосинтез?",
+    options: ["Кора", "Лист", "Корень", "Цветок"]
+  },
+  {
+    type: "КО",
+    question: "Назовите орган, в котором происходит дыхание растений."
+  },
+  {
+    type: "РО",
+    question: "Опишите процесс круговорота воды в природе с биологической точки зрения."
+  }
+];
+
+let current = 0;
+let timerInterval;
+let seconds = 0;
+
+function startTest(mode) {
+  document.getElementById("start-screen").style.display = "none";
+  document.getElementById("test-screen").style.display = "block";
+  seconds = mode === "SOR" ? 20 * 60 : 45 * 60;
+  updateTimer();
+  timerInterval = setInterval(() => {
+    seconds--;
+    updateTimer();
+    if (seconds <= 0) {
+      clearInterval(timerInterval);
+      alert("Время вышло!");
+    }
+  }, 1000);
+  renderQuestion();
+}
+
+function updateTimer() {
+  const min = Math.floor(seconds / 60);
+  const sec = ("0" + (seconds % 60)).slice(-2);
+  document.getElementById("timer").innerText = `Осталось: ${min}:${sec}`;
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  document.getElementById("q-type").innerText = q.type;
+  document.getElementById("q-text").innerText = q.question;
+  document.getElementById("q-options").innerHTML = "";
+  document.getElementById("q-answer").style.display = "none";
+
+  if (q.type === "МВО") {
+    q.options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.textContent = opt;
+      btn.className = "next";
+      document.getElementById("q-options").appendChild(btn);
+    });
+  } else {
+    document.getElementById("q-answer").style.display = "block";
+  }
+}
+
+function nextQuestion() {
+  if (current < questions.length - 1) {
+    current++;
+    renderQuestion();
+  } else {
+    alert("Тест завершён. Спасибо!");
+    clearInterval(timerInterval);
+  }
+}
+
+function prevQuestion() {
+  if (current > 0) {
+    current--;
+    renderQuestion();
+  }
+}
+</script>
+</body>
+</html>
 // Весь предыдущий HTML и JS оставляем без изменений, добавим только кнопку и функцию Excel-экспорта в блоке результатов и в скрипте
 
 <!-- Внутри блока #result-screen -->
@@ -39,3 +193,37 @@ function prevQuestion() {
 </script>
 </body>
 </html>
+// Добавим отдельный интерфейс входа для учителя в HTML:
+<div class="block" id="teacher-login" style="display:none;">
+  <h3>Вход для учителя</h3>
+  <input type="password" id="teacher-pass" placeholder="Пароль учителя" />
+  <button onclick="loginAsTeacher()">Войти</button>
+</div>
+
+<!-- Кнопка отображения входа -->
+<div style="text-align: center; margin-bottom: 1em;">
+  <button onclick="document.getElementById('teacher-login').style.display='block'">Войти как учитель</button>
+</div>
+
+// Скрипт:
+function loginAsTeacher() {
+  const pass = document.getElementById("teacher-pass").value;
+  if (pass === "teacher123") {
+    document.getElementById("teacher-tools").style.display = "block";
+    alert("Доступ учителя открыт");
+  } else {
+    alert("Неверный пароль");
+  }
+}
+
+// Удалим auto-появление при завершении теста
+function finishTest() {
+  clearInterval(timerInterval);
+  document.getElementById("test-screen").style.display = "none";
+  document.getElementById("result-screen").style.display = "block";
+  document.getElementById("result-fio").innerText = document.getElementById("fio").value;
+  document.getElementById("result-klass").innerText = document.getElementById("klass").value;
+  document.getElementById("total-score").innerText = totalScore;
+  document.getElementById("manual").value = totalScore;
+  document.getElementById("result-title").innerText = currentMode === "SOR" ? "СОР завершен" : "СОЧ завершен";
+}
